@@ -4,7 +4,11 @@
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
 import numpy as np
-from numba import jit
+try:
+    from numba import jit
+except ImportError:
+    from pandapower.pf.no_numba import jit
+
 from scipy.stats import chi2
 
 from pandapower.estimation.algorithm.matrix_base import BaseAlgebra
@@ -27,7 +31,7 @@ class BaseEstimatorIRWLS(BaseAlgebra):
         # Initilize BaseAlgebra object for calculation of relevant matrix
         super(BaseEstimatorIRWLS, self).__init__(eppci)
 
-    def create_phi(self, E):
+    def create_phi(self, E): # pragma: no cover
         # Must be implemented!
         pass
 
@@ -37,13 +41,13 @@ class BaseEstimatorOpt(BaseAlgebra):
         super(BaseEstimatorOpt, self).__init__(eppci)
         # Hyperparameters for estimator should be added here
 
-    def cost_function(self, E):
+    def cost_function(self, E): # pragma: no cover
         # Minimize sum(cost(r))
         # r = cost(z - h(x))
         # Must be implemented according to the estimator for the optimization
         pass
 
-    def create_rx_jacobian(self, E):
+    def create_rx_jacobian(self, E): # pragma: no cover
         pass
 
 
@@ -102,7 +106,7 @@ class SHGMEstimatorIRWLS(BaseEstimatorIRWLS):
         ps = np.zeros(omega.shape[0])
 
         @jit(nopython=True)
-        def calc_sm(omega, x, y, sm):
+        def calc_sm(omega, x, y, sm): # pragma: no cover
             m = omega.shape[0]
             x_shape = x.shape[0]
             y_shape = y.shape[0]
@@ -116,8 +120,10 @@ class SHGMEstimatorIRWLS(BaseEstimatorIRWLS):
                             x[x_ix] = np.abs(omega[i, k]+omega[j, k])
                             if not x[x_ix]:
                                 count0 += 1
-                    y[i] = np.sort(x)[count0 + (x_shape - count0 + 1)//2 - 1]
-                sm[k] = np.sort(y)[(y_shape + 1)//2 - 1] * 1.1926
+                    x.sort()
+                    y[i] = x[count0 + (x_shape - count0 + 1)//2 - 1]
+                y.sort()
+                sm[k] = y[(y_shape + 1)//2 - 1] * 1.1926
             return sm
 
         sm = calc_sm(omega, x, y, sm)
